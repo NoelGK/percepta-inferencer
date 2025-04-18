@@ -1,7 +1,7 @@
 import redis
 import redis.exceptions
 from config.config import settings
-from config.logging import logger
+from config.logging import appLogging as logging
 
 redis_client = redis.Redis(
     host=settings.REDIS.HOST,
@@ -21,4 +21,4 @@ try:
         mkstream=True
     )
 except redis.exceptions.ResponseError:
-    logger.warning(f"Consumer group {CONSUMER_GROUP_NAME} already exists")
+    logging.warning(f"Consumer group {CONSUMER_GROUP_NAME} already exists")

@@ -1,0 +1,17 @@
+name: percepta-inferencer
+
+networks:
+  percepta:
+    external: true
+
+services:
+  percepta-inferencer:
+    image: percepta-inferencer:latest
+
+    container_name: inferencer
+
+    volumes:
+      - ./src:/app/src
+    
+    networks: 
+      - percepta

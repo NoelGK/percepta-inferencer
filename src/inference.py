@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from typing import List
 from ultralytics import YOLO
-from config.logging import logger
+from config.logging import appLogging as logging
 from config.config import settings
 
 

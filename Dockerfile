@@ -12,3 +12,9 @@ RUN pip install --upgrade pip wheel poetry setuptools
 RUN poetry config virtualenvs.create false --local
 ENV PEP517_BUILD_BACKEND="setuptools.build_meta"
 RUN poetry install --only main --no-root
+
+WORKDIR /app
+COPY ./ /app/
+ENV PYTHONPATH="/app/src"
+ENV PYTHONDONTWRITEBYTECODE=1
+CMD [ "python", "src/main.py" ]

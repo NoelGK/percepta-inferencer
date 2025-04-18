@@ -3,7 +3,7 @@ import time
 import base64
 import numpy as np
 from inference import process_batch
-from config.logging import logger
+from config.logging import appLogging as logging
 from config.config import settings
 from config.consumer import (
     redis_client, 
@@ -20,6 +20,8 @@ def decode_frame(data):
 
 
 def main():
+    logging.info("Initializing inference pipeline...")
+
     streams = redis_client.xreadgroup(
         groupname=CONSUMER_GROUP_NAME,
         consumername=CONSUMER_NAME,
@@ -27,6 +29,7 @@ def main():
         count=1,
         block=5000
     )
+    logging.info(f"Connected to Redis Stream {FRAME_STREAM_NAME} with group {CONSUMER_GROUP_NAME}")
 
     batch = []
     entry_ids = []
@@ -40,7 +43,7 @@ def main():
                 entry_ids.append(entry_id)
 
             except Exception as e:
-                logger.error(f"Failed to process entry {entry_id}:\n {e}")
+                logging.error(f"Failed to process entry {entry_id}:\n {e}")
 
     if batch and (len(batch) >= settings.BATCH_SIZE or time.time() - last_batch_time > settings.BATCH_TIMEOUT):
         try:
@@ -48,7 +51,7 @@ def main():
             redis_client.xack(FRAME_STREAM_NAME, CONSUMER_GROUP_NAME, *entry_ids)
 
         except Exception as e:
-            logger.error(f"Error running inference over batch {entry_ids}:\n {e}")
+            logging.error(f"Error running inference over batch {entry_ids}:\n {e}")
 
         finally:
             batch.clear()
