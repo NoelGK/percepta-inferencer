@@ -9,7 +9,8 @@ from config.consumer import (
     redis_client, 
     FRAME_STREAM_NAME, 
     CONSUMER_GROUP_NAME,
-    CONSUMER_NAME
+    CONSUMER_NAME,
+    stream_batch
 )
 
 
@@ -22,41 +23,33 @@ def decode_frame(data):
 def main():
     logging.info("Initializing inference pipeline...")
 
-    streams = redis_client.xreadgroup(
-        groupname=CONSUMER_GROUP_NAME,
-        consumername=CONSUMER_NAME,
-        streams={FRAME_STREAM_NAME: '>'},
-        count=1,
-        block=5000
-    )
-    logging.info(f"Connected to Redis Stream {FRAME_STREAM_NAME} with group {CONSUMER_GROUP_NAME}")
-
     batch = []
     entry_ids = []
     last_batch_time = time.time()
 
-    for stream_name, entries in streams:
-        for entry_id, data in entries:
+    for streams in stream_batch(redis_client):
+        for stream_name, entries in streams:
+            for entry_id, data in entries:
+                try:
+                    frame = decode_frame(data)
+                    batch.append(frame)
+                    entry_ids.append(entry_id)
+
+                except Exception as e:
+                    logging.error(f"Failed to process entry {entry_id}:\n {e}")
+
+        if batch and (len(batch) >= settings.BATCH_SIZE or time.time() - last_batch_time > settings.BATCH_TIMEOUT):
             try:
-                frame = decode_frame(data)
-                batch.append(frame)
-                entry_ids.append(entry_id)
+                process_batch(batch)
+                redis_client.xack(FRAME_STREAM_NAME, CONSUMER_GROUP_NAME, *entry_ids)
 
             except Exception as e:
-                logging.error(f"Failed to process entry {entry_id}:\n {e}")
+                logging.error(f"Error running inference over batch {entry_ids}:\n {e}")
 
-    if batch and (len(batch) >= settings.BATCH_SIZE or time.time() - last_batch_time > settings.BATCH_TIMEOUT):
-        try:
-            process_batch(batch, entry_ids, last_batch_time)
-            redis_client.xack(FRAME_STREAM_NAME, CONSUMER_GROUP_NAME, *entry_ids)
-
-        except Exception as e:
-            logging.error(f"Error running inference over batch {entry_ids}:\n {e}")
-
-        finally:
-            batch.clear()
-            entry_ids.clear()
-            last_batch_time = time.time()
+            finally:
+                batch.clear()
+                entry_ids.clear()
+                last_batch_time = time.time()
 
 
 if __name__ == "__main__":
