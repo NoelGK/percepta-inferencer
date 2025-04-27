@@ -1,6 +1,5 @@
 import time
 import redis
-import redis.exceptions
 from config.config import settings
 from config.logging import appLogging as logging
 
@@ -29,6 +28,7 @@ except redis.exceptions.ResponseError:
 def stream_batch(
     client: redis.Redis, 
     group_name: str = CONSUMER_GROUP_NAME,
+    consumer_name: str = CONSUMER_NAME,
     stream_name: str = FRAME_STREAM_NAME,
     count: int = 1,
     block: int = 5000
@@ -39,12 +39,12 @@ def stream_batch(
     """
     while True:
         try:
-            streams = redis_client.xreadgroup(
-                groupname=CONSUMER_GROUP_NAME,
-                consumername=CONSUMER_NAME,
-                streams={FRAME_STREAM_NAME: '>'},
-                count=1,
-                block=5000
+            streams = client.xreadgroup(
+                groupname=group_name,
+                consumername=consumer_name,
+                streams={stream_name: '>'},
+                count=count,
+                block=block
             )
             yield streams
 
