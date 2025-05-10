@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import List
 from ultralytics import YOLO
@@ -15,3 +16,12 @@ def process_batch(batch: List):
     for i, result in enumerate(results):
         class_names = [MODEL.names[int(cls_id)] for cls_id in result.boxes.cls]
     return class_names
+
+
+class InferencerThread(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.frame_list = []
+
+    def run(self):
+        pass

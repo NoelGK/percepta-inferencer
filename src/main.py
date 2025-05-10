@@ -2,6 +2,7 @@ import cv2
 import time
 import base64
 import numpy as np
+from fastapi import FastAPI, APIRouter
 from inference import process_batch
 from config.logging import appLogging as logging
 from config.config import settings
