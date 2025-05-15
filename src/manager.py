@@ -1,4 +1,5 @@
 import redis
+from typing import List
 from src.config.logging import appLogging as logging
 from src.schemas.new_stream_schema import NewStreamSchema
 from src.inference import InferencerThread
@@ -35,3 +36,6 @@ class ConsumerManager:
         except KeyError:
             logging.error(f"Tried to stop inference for stream {stream_name}, which is not in the active consumers")
             return False
+
+    def get_active_consumers(self) -> List:
+        return [stream_name for stream_name in self.consumers]

@@ -1,60 +1,49 @@
-import cv2
-import time
 import redis
-import base64
-import numpy as np
+from typing import List
 from fastapi import FastAPI, APIRouter
-from inference import process_batch
-from config.logging import appLogging as logging
+from manager import ConsumerManager
 from config.config import settings
-from config.consumer import (
-    redis_client, 
-    FRAME_STREAM_NAME, 
-    CONSUMER_GROUP_NAME,
-    CONSUMER_NAME,
-    stream_batch
-)
+from config.logging import appLogging as logging
+from schemas.new_stream_schema import NewStreamSchema
 
-# Initialize ingestion manager
+logging.info(f"Initializing inference pipeline...")
 redis_client = redis.Redis(
-    host=settings.REDIS.HOST,
-    port=settings.REDIS.PORT,
-    password=settings.REDIS.PASSWORD
+    host=settings.REDIS.host,
+    port=settings.REDIS.port,
+    password=settings.REDIS.password
 )
-logging.info(f"Connected to Redis Stream '{FRAME_STREAM_NAME}' with group {CONSUMER_GROUP_NAME}")
+logging.info(f"Connected to Redis at {settings.REDIS.HOST}")
+
+manager = ConsumerManager(redis_client)
+logging.info("Consumer manager initialized")
+
+# API router and endpoints
+router = APIRouter(prefix="/api/v1", tags=["Base"])
 
 
-def main():
-    logging.info("Initializing inference pipeline...")
-
-    batch = []
-    entry_ids = []
-    last_batch_time = time.time()
-
-    for streams in stream_batch(redis_client):
-        for stream_name, entries in streams:
-            for entry_id, data in entries:
-                try:
-                    frame = decode_frame(data)
-                    batch.append(frame)
-                    entry_ids.append(entry_id)
-
-                except Exception as e:
-                    logging.error(f"Failed to process entry {entry_id}:\n {e}")
-
-        if batch and (len(batch) >= settings.BATCH_SIZE or time.time() - last_batch_time > settings.BATCH_TIMEOUT):
-            try:
-                process_batch(batch)
-                redis_client.xack(FRAME_STREAM_NAME, CONSUMER_GROUP_NAME, *entry_ids)
-
-            except Exception as e:
-                logging.error(f"Error running inference over batch {entry_ids}:\n {e}")
-
-            finally:
-                batch.clear()
-                entry_ids.clear()
-                last_batch_time = time.time()
+@router.post("/add-consumer", status_code=200)
+def new_stream(add_consumer: NewStreamSchema) -> str:
+    new_stream_name = manager.add_consumer(new_stream)
+    return new_stream_name
 
 
-if __name__ == "__main__":
-    main()
+@router.delete("/remove-stream/{stream_name}", status_code=200)
+def stop_stream(stream_name: str) -> bool:
+    return manager.remove_consumer(stream_name)
+
+
+@router.get("/active-consumers", status_code=200)
+def active_consumers() -> List:
+    return manager.get_active_consumers()
+
+
+api = FastAPI(
+    title="Percepta Inference manager API",
+    description="API for managing CV processing of frames from Redis Streams.",
+    version="1.0.0",
+    docs_url="/docs",           # Swagger UI
+    redoc_url="/redoc",         # ReDoc alternative
+    openapi_url="/openapi.json" # OpenAPI schema
+)
+api.include_router(router)
+logging.info(f"Stream management API initialized")
