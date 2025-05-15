@@ -27,6 +27,7 @@ class InferencerThread(threading.Thread):
         self.redis_client = redis_client
         self.stream_name = stream_name
         self.group_name = group_name
+        self.running: bool = True
 
     def run(self):
         frame_batch = []
@@ -58,14 +59,15 @@ class InferencerThread(threading.Thread):
                     last_batch_time = time.time()
 
     def stop(self):
-        pass
+        logging.info(f"Stopping inference thread for stream {self.stream_name}")
+        self.running = False
 
     def __stream_batch(self, count: int = 1, block: int = 5000):
         """
             Calls the xreadgroup method over 'client' and yields 
             the stream returned.
         """
-        while True:
+        while self.running():
             try:
                 streams = self.redis_client.xreadgroup(
                     groupname=self.group_name,
