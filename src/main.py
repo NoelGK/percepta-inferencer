@@ -1,5 +1,6 @@
 import cv2
 import time
+import redis
 import base64
 import numpy as np
 from fastapi import FastAPI, APIRouter
@@ -14,11 +15,13 @@ from config.consumer import (
     stream_batch
 )
 
-
-def decode_frame(data):
-    frame_buffer = base64.b64decode(data[b"frame"])
-    frame_array = np.frombuffer(frame_buffer, np.uint8)
-    return cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+# Initialize ingestion manager
+redis_client = redis.Redis(
+    host=settings.REDIS.HOST,
+    port=settings.REDIS.PORT,
+    password=settings.REDIS.PASSWORD
+)
+logging.info(f"Connected to Redis Stream '{FRAME_STREAM_NAME}' with group {CONSUMER_GROUP_NAME}")
 
 
 def main():
