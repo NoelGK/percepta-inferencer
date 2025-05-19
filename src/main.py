@@ -8,9 +8,9 @@ from schemas.new_stream_schema import NewStreamSchema
 
 logging.info(f"Initializing inference pipeline...")
 redis_client = redis.Redis(
-    host=settings.REDIS.host,
-    port=settings.REDIS.port,
-    password=settings.REDIS.password
+    host=settings.REDIS.HOST,
+    port=settings.REDIS.PORT,
+    password=settings.REDIS.PASSWORD
 )
 logging.info(f"Connected to Redis at {settings.REDIS.HOST}")
 
@@ -22,14 +22,14 @@ router = APIRouter(prefix="/api/v1", tags=["Base"])
 
 
 @router.post("/add-consumer", status_code=200)
-def new_stream(add_consumer: NewStreamSchema) -> str:
+def add_stream(new_stream: NewStreamSchema) -> str:
     new_stream_name = manager.add_consumer(new_stream)
     return new_stream_name
 
 
-@router.delete("/remove-stream/{stream_name}", status_code=200)
-def stop_stream(stream_name: str) -> bool:
-    return manager.remove_consumer(stream_name)
+@router.delete("/remove-stream/{device_id}", status_code=200)
+def stop_stream(device_id: str) -> bool:
+    return manager.remove_consumer(device_id)
 
 
 @router.get("/active-consumers", status_code=200)

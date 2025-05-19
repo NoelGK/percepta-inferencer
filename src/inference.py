@@ -34,7 +34,7 @@ class InferencerThread(threading.Thread):
         entry_ids = []
         last_batch_time = time.time()
 
-        for streams in self.__stream_batch(self.redis_client, self.group_name, self.stream_name):
+        for streams in self.__stream_batch():
             for stream_name, entries in streams:
                 for entry_id, data in entries:
                     try:
@@ -67,7 +67,7 @@ class InferencerThread(threading.Thread):
             Calls the xreadgroup method over 'client' and yields 
             the stream returned.
         """
-        while self.running():
+        while self.running:
             try:
                 streams = self.redis_client.xreadgroup(
                     groupname=self.group_name,
