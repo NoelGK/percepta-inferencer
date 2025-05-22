@@ -4,7 +4,7 @@ from fastapi import FastAPI, APIRouter
 from manager import ConsumerManager
 from config.config import settings
 from config.logging import appLogging as logging
-from schemas.new_stream_schema import NewStreamSchema
+from schemas.stream_schema import StreamSchema
 
 logging.info(f"Initializing inference pipeline...")
 redis_client = redis.Redis(
@@ -21,15 +21,15 @@ logging.info("Consumer manager initialized")
 router = APIRouter(prefix="/api/v1", tags=["Base"])
 
 
-@router.post("/add-consumer", status_code=200)
-def add_stream(new_stream: NewStreamSchema) -> str:
-    new_stream_name = manager.add_consumer(new_stream)
+@router.post("/start-consumer", status_code=200)
+def add_consumer(stream: StreamSchema) -> str:
+    new_stream_name = manager.start_consumer(stream)
     return new_stream_name
 
 
-@router.delete("/remove-stream/{device_id}", status_code=200)
-def stop_stream(device_id: str) -> bool:
-    return manager.remove_consumer(device_id)
+@router.delete("/stop-consumer/{stream_id}", status_code=200)
+def stop_consumer(stream_id: int) -> bool:
+    return manager.stop_consumer(stream_id)
 
 
 @router.get("/active-consumers", status_code=200)

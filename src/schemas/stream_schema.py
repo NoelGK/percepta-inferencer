@@ -2,7 +2,8 @@ from typing import Optional
 from pydantic import BaseModel, field_validator, model_validator
 
 
-class NewStreamSchema(BaseModel):
+class StreamSchema(BaseModel):
+    id: int
     device_id: str
     frame_width: Optional[int] = 1920
     frame_height: Optional[int] = 1080
