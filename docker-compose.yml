@@ -8,10 +8,14 @@ services:
   percepta-inferencer:
     image: percepta-inferencer:latest
 
-    container_name: inferencer
+    container_name: percepta-inferencer
+
+    ports:
+      - "8002:8000"
 
     volumes:
       - ./src:/app/src
+      - .env:/app/.env
     
     networks: 
       - percepta
